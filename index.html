@@ -3,127 +3,151 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>แบบทดสอบ ถูก/ผิด</title>
+<title>กิจกรรมถูก/ผิด (สด)</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap');
-body{font-family:'Sarabun',sans-serif;padding:20px;text-align:center;background:#f4f7f6;-webkit-text-size-adjust:100%;margin:0}
-.box{max-width:700px;margin:20px auto;padding:20px;background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.08)}
-h1{font-size:26px;color:#d9534f;margin:0 0 16px}
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+*{box-sizing:border-box}
+body{font-family:'Sarabun',sans-serif;margin:0;padding:18px;background:#f4f7f6;text-align:center;-webkit-text-size-adjust:100%}
+.box{max-width:640px;margin:14px auto;background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.08);padding:20px}
+h1{color:#d9534f;font-size:24px;margin:0 0 14px}
 label{display:block;text-align:left;font-weight:700;margin-top:8px}
-input,select{width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:6px;font-size:16px;box-sizing:border-box;font-family:inherit}
-button{padding:14px 24px;font-size:20px;cursor:pointer;border:none;border-radius:10px;color:#fff;font-family:inherit;font-weight:700}
-button:disabled{background:#ccc!important;cursor:not-allowed}
-.go{background:#337ab7;width:100%;margin-top:14px}
-.prog{color:#888;font-size:14px;text-align:left}
-.bar{height:6px;background:#eee;border-radius:3px;overflow:hidden;margin:6px 0 20px}
-.bar i{display:block;height:100%;width:0;background:#d9534f;transition:width .25s}
-.q{font-size:22px;line-height:1.6;text-align:left;margin:10px 0 28px;min-height:110px}
+input{width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:6px;font:inherit;font-size:17px}
+button{font:inherit;font-weight:700;border:none;border-radius:10px;color:#fff;cursor:pointer}
+button:disabled{background:#ccc!important}
+.go{background:#337ab7;width:100%;padding:14px;font-size:20px;margin-top:12px}
+.stmt{font-size:22px;line-height:1.6;text-align:left;margin:10px 0 24px}
 .btns{display:flex;gap:14px}
-.btns button{flex:1;padding:22px 0;font-size:26px}
+.btns button{flex:1;padding:24px 0;font-size:28px}
 .yes{background:#5cb85c}.no{background:#d9534f}
-.err{color:#d9534f;margin-top:10px;font-size:15px}
+.timer{font-size:44px;font-weight:700;color:#d9534f}
+.msg{font-size:20px;color:#555;padding:26px 0}
+.big{font-size:32px;font-weight:700;margin:14px 0}
+.ok{color:#2e8b57}.bad{color:#d9534f}
+.err{color:#d9534f;margin-top:10px}
 .hide{display:none}
 </style>
 </head>
 <body>
 <div class="box">
-  <h1>แบบทดสอบ ถูก/ผิด</h1>
+  <h1>กิจกรรมถูก/ผิด (สด)</h1>
 
-  <div id="setup">
+  <div id="join">
+    <label for="code">รหัสห้อง (จากหน้าจอหัวหน้า)</label>
+    <input id="code" inputmode="numeric" maxlength="4" autocomplete="off">
     <label for="nm">ชื่อ-นามสกุล</label><input id="nm" autocomplete="name">
     <label for="gp">สังกัด/กลุ่มงาน</label><input id="gp">
-    <label for="tm">ทีม</label>
-    <select id="tm"><option value="tele">ทีมเทเล</option><option value="agent">ทีมเอเจน</option></select>
-    <button class="go" id="startBtn">เริ่มทำแบบทดสอบ</button>
+    <button class="go" id="joinBtn">เข้าร่วม</button>
   </div>
 
-  <div id="quiz" class="hide">
-    <div class="prog" id="prog"></div>
-    <div class="bar"><i id="bar"></i></div>
-    <div class="q" id="qText"></div>
-    <div class="btns">
-      <button class="yes" id="yesBtn">ถูก</button>
-      <button class="no" id="noBtn">ผิด</button>
+  <div id="play" class="hide">
+    <div id="lobby" class="msg hide">เข้าร่วมแล้ว<br>รอหัวหน้าเริ่มกิจกรรม...</div>
+    <div id="ques" class="hide">
+      <div class="timer" id="left"></div>
+      <div class="stmt" id="stmt"></div>
+      <div class="btns"><button class="yes" id="yesBtn">ถูก</button><button class="no" id="noBtn">ผิด</button></div>
     </div>
+    <div id="wait" class="msg hide"></div>
+    <div id="res" class="hide"><div class="big" id="resT"></div><div class="msg" id="resS"></div></div>
   </div>
-
-  <div id="done" class="hide">
-    <h1>ทำแบบทดสอบเสร็จแล้ว</h1>
-    <p style="font-size:20px" id="result"></p>
-  </div>
-
   <div id="err" class="err"></div>
 </div>
 
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-const supabase = createClient(
+const sb = createClient(
   'https://wzwyotzzxycqfwercakh.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6d3lvdHp6eHljcWZ3ZXJjYWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNTg3MTMsImV4cCI6MjA3MjYzNDcxM30.lgiAf9oBUqsaWGb3u_80wuoKAODQHE_lIBxpGumhrno'
 );
-
 const $ = id => document.getElementById(id);
-const view = id => ['setup', 'quiz', 'done'].forEach(v => $(v).classList.toggle('hide', v !== id));
 const fail = m => { $('err').textContent = m || ''; };
+const show = id => ['lobby', 'ques', 'wait', 'res'].forEach(v => $(v).classList.toggle('hide', v !== id));
 
-let qs = [], idx = 0, attempt = null, finished = false, busy = false;
+let P = JSON.parse(sessionStorage.getItem('wcp') || 'null');   // {gid, pid}
+let key = '', qid = null, deadline = 0, busy = false;
+const answeredKey = () => 'wca-' + qid;
 
-$('startBtn').onclick = async () => {
+$('code').value = new URLSearchParams(location.search).get('code') || '';
+$('joinBtn').onclick = async () => {
   fail();
-  const name = $('nm').value.trim(), group = $('gp').value.trim(), team = $('tm').value;
-  if (!name) return fail('กรุณากรอกชื่อ-นามสกุล');
-  if (!group) return fail('กรุณากรอกสังกัด/กลุ่มงาน');
-  $('startBtn').disabled = true;
-  const { data, error } = await supabase.from('wc_questions_public').select('*')
-    .in('team', ['all', team]).order('position').order('team');
-  if (error || !data.length) {
-    $('startBtn').disabled = false;
-    return fail(error ? 'โหลดโจทย์ไม่สำเร็จ: ' + error.message : 'ยังไม่มีโจทย์ ติดต่อเทรนเนอร์');
-  }
-  const r = await supabase.rpc('wc_start_attempt', { p_name: name, p_group: group, p_team: team });
-  $('startBtn').disabled = false;
-  if (r.error) return fail('เริ่มไม่สำเร็จ: ' + r.error.message);
-  qs = data; attempt = r.data; idx = 0;
-  view('quiz'); draw();
+  const code = $('code').value.trim(), name = $('nm').value.trim(), group = $('gp').value.trim();
+  if (!code || !name) return fail('กรอกรหัสห้องและชื่อ-นามสกุลก่อน');
+  $('joinBtn').disabled = true;
+  const { data, error } = await sb.rpc('wc_live_join', { p_code: code, p_name: name, p_group: group });
+  $('joinBtn').disabled = false;
+  if (error) return fail(/not found/.test(error.message) ? 'ไม่พบห้องนี้ ตรวจสอบรหัสอีกครั้ง' : 'เข้าร่วมไม่สำเร็จ: ' + error.message);
+  P = { gid: data[0].gid, pid: data[0].pid };
+  sessionStorage.setItem('wcp', JSON.stringify(P));
+  start();
 };
 
-function draw() {
-  $('prog').textContent = 'ข้อ ' + (idx + 1) + ' / ' + qs.length;
-  $('bar').style.width = (idx / qs.length * 100) + '%';
-  $('qText').textContent = qs[idx].statement;
+function start() {
+  $('join').classList.add('hide'); $('play').classList.remove('hide');
+  sb.channel('game-' + P.gid)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'wc_games', filter: 'id=eq.' + P.gid }, sync)
+    .subscribe();
+  setInterval(sync, 3000);   // สำรองเผื่อ realtime หลุด
+  sync();
 }
 
-async function answer(val) {
+async function sync() {
+  const { data, error } = await sb.rpc('wc_live_state', { p_game: P.gid });
+  if (error || !data || !data[0]) return;
+  const s = data[0], k = s.st + '|' + s.qid;
+  if (s.st === 'question') deadline = Date.now() + Number(s.remaining) * 1000;
+  if (k === key) return;
+  key = k; qid = s.qid; fail();
+
+  if (s.st === 'lobby') return show('lobby');
+  if (s.st === 'question') {
+    const q = await sb.from('wc_questions_public').select('statement').eq('id', s.qid).single();
+    $('stmt').textContent = q.data ? q.data.statement : '';
+    const done = !!sessionStorage.getItem(answeredKey());
+    $('yesBtn').disabled = $('noBtn').disabled = done;
+    return show('ques');
+  }
+  if (s.st === 'closed') {
+    $('wait').textContent = sessionStorage.getItem(answeredKey()) ? 'ส่งคำตอบแล้ว รอเฉลย...' : 'หมดเวลารับคำตอบ รอเฉลย...';
+    return show('wait');
+  }
+  // revealed / ended
+  const r = await sb.rpc('wc_live_result', { p_player: P.pid, p_game: P.gid });
+  const x = r.data && r.data[0];
+  if (!x) return;
+  const t = $('resT');
+  if (!x.r_answered) { t.textContent = 'ไม่ได้ตอบข้อนี้'; t.className = 'big'; }
+  else if (x.r_correct) { t.textContent = 'ตอบถูก +1 คะแนน'; t.className = 'big ok'; }
+  else { t.textContent = 'ตอบผิด ได้ใบวอร์นิ่ง 1 ใบ'; t.className = 'big bad'; }
+  $('resS').textContent = (s.st === 'ended' ? 'จบกิจกรรม • ' : 'รวมตอนนี้ • ') +
+    'คะแนน ' + x.r_score + ' • ใบวอร์นิ่ง ' + x.r_warnings + ' ใบ';
+  show('res');
+}
+
+setInterval(() => {
+  if (key.startsWith('question')) {
+    const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+    $('left').textContent = left;
+    if (left <= 0) { $('yesBtn').disabled = $('noBtn').disabled = true; }
+  }
+}, 250);
+
+async function answer(v) {
   if (busy) return;
   busy = true; fail();
   $('yesBtn').disabled = $('noBtn').disabled = true;
-  const { error } = await supabase.rpc('wc_submit_answer',
-    { p_attempt: attempt, p_question: qs[idx].id, p_answer: val });
-  // ถ้าเคยส่งข้อนี้สำเร็จแล้ว (เน็ตสะดุด) ให้ข้ามไปข้อถัดไป
+  const { error } = await sb.rpc('wc_live_answer', { p_player: P.pid, p_game: P.gid, p_answer: v });
+  busy = false;
+  if (error && /closed/.test(error.message)) return fail('หมดเวลาแล้ว ส่งคำตอบไม่ทัน');
   if (error && !/duplicate|unique/i.test(error.message)) {
-    busy = false; $('yesBtn').disabled = $('noBtn').disabled = false;
-    return fail('ส่งคำตอบไม่สำเร็จ ลองกดอีกครั้ง (' + error.message + ')');
+    $('yesBtn').disabled = $('noBtn').disabled = false;
+    return fail('ส่งไม่สำเร็จ ลองกดอีกครั้ง');
   }
-  if (idx + 1 < qs.length) { idx++; draw(); }
-  else await finish();
-  busy = false; $('yesBtn').disabled = $('noBtn').disabled = false;
+  sessionStorage.setItem(answeredKey(), '1');
+  $('wait').textContent = 'ส่งคำตอบแล้ว รอเฉลย...'; show('wait');
 }
-
-async function finish() {
-  const { data, error } = await supabase.rpc('wc_finish_attempt', { p_attempt: attempt });
-  if (error) return fail('สรุปผลไม่สำเร็จ: ' + error.message);
-  finished = true;
-  const r = Array.isArray(data) ? data[0] : data;
-  $('result').textContent = 'คะแนน ' + r.score + ' / ' + qs.length + ' • ใบวอร์นิ่ง ' + r.warnings + ' ใบ';
-  view('done');
-}
-
 $('yesBtn').onclick = () => answer(true);
 $('noBtn').onclick = () => answer(false);
-window.addEventListener('beforeunload', e => {
-  if (attempt && !finished) { e.preventDefault(); e.returnValue = ''; }
-});
+
+if (P) start();   // รีเฟรชหน้าแล้วกลับเข้าห้องเดิมต่อได้
 </script>
 </body>
 </html>
